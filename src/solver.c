@@ -177,16 +177,16 @@ void transport_sweep( Params params, Input I )
 
 							// pick a random FSR (cache miss expected)
 							#ifdef OPENMP
-							long QSR_id = rand_r(&seed) % 
+							long FSR_id = rand_r(&seed) % 
 								I.n_source_regions_per_node;
 							#else
-							long QSR_id = rand() % 
+							long FSR_id = rand() % 
 								I.n_source_regions_per_node;
 							#endif
 
 							/* update sources and fluxes from attenuation 
 							 * over FSR */
-							attenuate_fluxes( track, &params.sources[QSR_id], 
+							attenuate_fluxes( track, &params.sources[FSR_id], 
 									I, params, ds, mu, 
 									params.tracks_2D[i].az_weight );
 
@@ -247,7 +247,7 @@ int get_neg_interval( float z, float dz)
 	return interval;
 }
 
-void attenuate_fluxes( Track * track, Source * QSR, Input I, 
+void attenuate_fluxes( Track * track, Source * FSR, Input I, 
 		Params params, float ds, float mu, float az_weight ) 
 {
 	// compute fine axial interval spacing
@@ -261,92 +261,30 @@ void attenuate_fluxes( Track * track, Source * QSR, Input I,
 
 	// compute weight (azimuthal * polar)
 	// NOTE: real app would also have volume weight component
-	float weight = track->p_weight * az_weight;
-	float mu2 = mu * mu;
+	float weight = track->p_weight * az_weight * mu;
 
 	// load fine source region flux vector
-	float * FSR_flux = QSR -> fine_flux[fine_id];
+	float * FSR_flux = FSR -> fine_flux[fine_id];
 
 	// cycle over energy groups
 	for( int g = 0; g < I.n_egroups; g++)
 	{
-		// load total cross section
-		float sigT = QSR->sigT[g];
-
-		// define source parameters
-		float q0, q1, q2;
-
-		// calculate source components
-		if( fine_id == 0 )
-		{
-			// load neighboring sources
-			float y2 = QSR->fine_source[fine_id][g];
-			float y3 = QSR->fine_source[fine_id+1][g];
-
-			// do linear "fitting"
-			float c0 = y2;
-			float c1 = (y3 - y2) / dz;
-
-			// calculate q0, q1, q2
-			q0 = c0 + c1*zin;
-			q1 = c1;
-			q2 = 0;
-		}
-		else if( fine_id == I.fai - 1 )
-		{
-			// load neighboring sources
-			float y1 = QSR->fine_source[fine_id-1][g];
-			float y2 = QSR->fine_source[fine_id][g];
-
-			// do linear "fitting"
-			float c0 = y2;
-			float c1 = (y2 - y1) / dz;
-
-			// calculate q0, q1, q2
-			q0 = c0 + c1*zin;
-			q1 = c1;
-			q2 = 0;
-		}		
-		else
-		{
-			// load neighboring sources
-			float y1 = QSR->fine_source[fine_id-1][g];
-			float y2 = QSR->fine_source[fine_id][g];
-			float y3 = QSR->fine_source[fine_id+1][g];
-
-			// do quadratic "fitting"
-			float c0 = y2;
-			float c1 = (y1 - y3) / (2*dz);
-			float c2 = (y1 - 2*y2 + y3) / (2*dz*dz);
-
-			// calculate q0, q1, q2
-			q0 = c0 + c1*zin + c2*zin*zin;
-			q1 = c1 + 2*c2*zin;
-			q2 = c2;
-		}
-
-		// calculate common values for efficiency
-		float tau = sigT * ds;
-		float sigT2 = sigT * sigT;
-
+		// load total cross section and source
+		float sigT = FSR->sigT[g];
+		float q = FSR->fine_source[fine_id][g] / sigT;
+		
 		// compute exponential ( 1 - exp(-x) ) using table lookup
-		float expVal = interpolateTable( params.expTable, tau );  
+		float expVal = interpolateTable( params.expTable, sigT * ds );  
+
+		// compute angular flux attenuation
+		float delta_psi = (track->psi[g] - q) * expVal;
 
 		// add contribution to new source flux
-		float flux_integral = (q0 * tau + (sigT * track->psi[g] - q0) * expVal)
-			/ sigT2
-			+ q1 * mu * (tau * (tau - 2) + 2 * expVal)
-			/ (sigT * sigT2)
-			+ q2 * mu2 * (tau * (tau * (tau - 3) + 6) - 6 * expVal)
-			/ (3 * sigT2 * sigT2);
-
 		#pragma omp atomic
-		FSR_flux[g] += weight * flux_integral;
+		FSR_flux[g] += weight * delta_psi;
 
 		// update angular flux
-		track->psi[g] = track->psi[g] * (1.0 - expVal) + q0 * expVal / sigT
-			+ q1 * mu * (tau - expVal) / sigT2 + q2 * mu2 *
-			(tau * (tau - 2) + 2 * expVal) / (sigT2 * sigT);
+		track->psi[g] -= delta_psi;
 	}
 }	
 
@@ -368,8 +306,14 @@ void renormalize_flux( Params params, Input I, CommGrid grid )
 		for( int j = 0; j < I.fai; j++)
 		{
 			for( int g = 0; g < I.n_egroups; g++)
+			{
+				// add source contribution to flux
+				src.fine_flux[j][g] += src.fine_source[j][g] / src.sigT[g];
+				
 				g_fission_rates[g] = src.fine_flux[j][g] * src.vol 
 					* src.XS[g][0];
+				
+			}
 			fine_fission_rates[j] = pairwise_sum( g_fission_rates, 
 					I.n_egroups );
 		}
