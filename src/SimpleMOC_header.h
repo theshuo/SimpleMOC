@@ -1,6 +1,7 @@
 #ifndef __SimpleMOC_header
 #define __SimpleMOC_header
 
+#include<pthread.h>
 #include<stdio.h>
 #include<stdlib.h>
 #include<math.h>
@@ -58,6 +59,8 @@ typedef struct{
 
 	// Source regions per node (derived)	
 	long n_source_regions_per_node; 
+
+    // PAPI input
 } Input;
 
 // Localized geometrical region ID
@@ -193,6 +196,8 @@ float compute_keff( Params params, Input I, CommGrid grid);
 void gen_norm_pts(float mean, float sigma, int n_pts);
 
 // papi.c
+void counter_print(int *eventset, long long *vals,
+       long long *vals_thread_accum, int num_papi_events);
 void papi_serial_init(void);
 void counter_init( int *eventset, int *num_papi_events, Input I );
 void counter_stop( int * eventset, int num_papi_events, Input I );

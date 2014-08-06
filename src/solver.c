@@ -8,6 +8,7 @@ void transport_sweep( Params params, Input I )
 	// calculate the height of a node's domain and of each FSR
 	double node_delta_z = I.height / I.decomp_assemblies_ax;
 	double fine_delta_z = node_delta_z / (I.cai * I.fai);
+    long long *vals_thread_accum = (long long*) calloc(1, sizeof(long long) );
 
 	// initialize fluxes in transport sweep
 	for( int i = 0; i < I.ntracks_2D; i++)
@@ -23,7 +24,7 @@ void transport_sweep( Params params, Input I )
 	 * angles, polar angles, and z stacked rays) */
 
 	#pragma omp parallel default(none) \
-	shared( I, params, node_delta_z, fine_delta_z )
+	shared( I, params, node_delta_z, fine_delta_z, vals_thread_accum)
 	{
 		#ifdef OPENMP
 		int thread = omp_get_thread_num();
@@ -34,12 +35,16 @@ void transport_sweep( Params params, Input I )
 		#ifdef PAPI
         int eventset = PAPI_NULL;
         int num_papi_events;
+        long long *vals;
         #pragma omp critical
         {
             counter_init(&eventset, &num_papi_events, I);
         }
+        vals = (long long*) calloc(num_papi_events, sizeof(long long));
 		#endif
 
+        PAPI_start(eventset);
+        PAPI_reset(eventset);
 		#pragma omp for schedule( dynamic ) 
 		for (long i = 0; i < I.ntracks_2D; i++)
 		{
@@ -57,7 +62,6 @@ void transport_sweep( Params params, Input I )
 					printf("%s%ld%s%ld\n","2D Tracks Completed = ", i," / ", 
 							I.ntracks_2D );
 			#endif
-
 
 			// treat positive-z traveling rays first
 			bool pos_z_dir = true;
@@ -197,6 +201,8 @@ void transport_sweep( Params params, Input I )
 				}
 			}
 		}
+        PAPI_accum(eventset, vals);
+        PAPI_stop(eventset, NULL);
 		#ifdef OPENMP
 		if(thread == 0 && I.mype==0) printf("\n");
 		#endif
@@ -213,9 +219,10 @@ void transport_sweep( Params params, Input I )
         {
         #pragma omp barrier
         }
-        counter_stop(&eventset, num_papi_events, I);
+        counter_print(&eventset, vals, vals_thread_accum, num_papi_events);
+        //counter_stop(&eventset, num_papi_events, I);
         #endif
-	}
+	} // End parallel
 
 	return;
 }

@@ -11,6 +11,41 @@ void papi_serial_init(void)
 	}
 }
 
+void counter_print(int *eventset, long long *vals,
+       long long *vals_thread_accum, int num_papi_events)
+{
+    int thread = omp_get_thread_num();
+	int * events = malloc(num_papi_events * sizeof(int));
+    int n = num_papi_events;
+	PAPI_list_events( *eventset, events, &n );
+	PAPI_event_info_t info;
+    
+    #pragma omp critical
+    {
+		printf("Thread %d\n", thread);
+		for( int i = 0; i < num_papi_events; i++ )
+		{
+            vals_thread_accum[i] += vals[i];
+			PAPI_get_event_info(events[i], &info);
+			printf("%-15lld\t%s\t%s\n", vals[i],info.symbol,info.long_descr);
+        }
+    }
+    {
+        #pragma omp barrier
+    }
+    #pragma omp master
+    {
+		printf("Thread Totals \n");
+		for( int i = 0; i < num_papi_events; i++ )
+		{
+			PAPI_get_event_info(events[i], &info);
+			printf("%-15lld\t%s\t%s\n", vals_thread_accum[i],info.symbol,info.long_descr);
+        }
+    }
+
+    free(events);
+}
+
 void counter_init( int *eventset, int *num_papi_events, Input I )
 {
 	char error_str[PAPI_MAX_STR_LEN];
@@ -21,10 +56,10 @@ void counter_init( int *eventset, int *num_papi_events, Input I )
 	// FLOPS
 	if( I.papi_event_set == 0 )
 	{
-		*num_papi_events = 2;
+		*num_papi_events = 1;
 		events = (int *) malloc( *num_papi_events * sizeof(int));
-		events[0] = PAPI_FP_OPS;
-		events[1] = PAPI_TOT_CYC;
+		events[0] = PAPI_FP_INS;
+	//	events[1] = PAPI_TOT_CYC;
 	}
 	// Bandwidth
 	if( I.papi_event_set == 1 )
@@ -301,7 +336,7 @@ void counter_init( int *eventset, int *num_papi_events, Input I )
 	int thread = omp_get_thread_num();
 
 	if ((stat = PAPI_thread_init((long unsigned int (*)(void))
-					omp_get_thread_num)) != PAPI_OK){
+					pthread_self)) != PAPI_OK){
 		PAPI_perror("PAPI_thread_init");
 		exit(1);
 	}
@@ -320,12 +355,13 @@ void counter_init( int *eventset, int *num_papi_events, Input I )
 			exit(1);
 		}
 	}
-
+/*
 	if ((stat=PAPI_start(*eventset)) != PAPI_OK)
 	{
 		PAPI_perror("PAPI_start");
 		exit(1);
 	}
+    */
 }
 
 
@@ -379,7 +415,7 @@ void counter_stop( int * eventset, int num_papi_events, Input I )
 	PAPI_event_info_t info;
 
 	long_long * values = malloc( num_papi_events * sizeof(long_long));
-	PAPI_stop(*eventset, values);
+    PAPI_stop(*eventset, values);
 	int thread = omp_get_thread_num();
 	int nthreads = omp_get_num_threads();
 
