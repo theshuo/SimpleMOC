@@ -59,8 +59,11 @@ typedef struct{
 
 	// Source regions per node (derived)	
 	long n_source_regions_per_node; 
-
-    // PAPI input
+       
+    #ifdef PAPI
+    // PAPI event to count
+    char event_name[PAPI_MAX_STR_LEN];
+    #endif
 } Input;
 
 // Localized geometrical region ID

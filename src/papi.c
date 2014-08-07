@@ -53,12 +53,12 @@ void counter_init( int *eventset, int *num_papi_events, Input I )
 
 	int * events;
 
-	// FLOPS
+	// Command line PAPI event
 	if( I.papi_event_set == 0 )
 	{
 		*num_papi_events = 1;
 		events = (int *) malloc( *num_papi_events * sizeof(int));
-		events[0] = PAPI_FP_INS;
+		PAPI_event_name_to_code(I.event_name,&events[0]);
 	//	events[1] = PAPI_TOT_CYC;
 	}
 	// Bandwidth

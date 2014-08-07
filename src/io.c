@@ -108,6 +108,9 @@ void print_input_summary(Input I)
 	printf("%-35s", "3D Tracks:"); fancy_int(I.ntracks);
 	printf("%-35s%zu (MB)\n", "Estimated Memory Usage:",
 			est_mem_usage(I) / 1024 / 1024);
+#ifdef PAPI
+	printf("%-35s%s\n", "PAPI Event to count",I.event_name);
+#endif
 	border_print();
 }
 
@@ -141,6 +144,17 @@ void read_CLI( int argc, char * argv[], Input * input )
 			else
 				print_CLI_error();
 		}
+        // PAPI event (-pev)
+        #ifdef PAPI
+        else if ( strcmp(arg, "-pev") == 0)
+        {
+            if( ++i < argc ){
+                strcpy(input->event_name, argv[i]);
+            }
+            else
+                print_CLI_error();
+        }
+        #endif
 		else
 			print_CLI_error();
 	}
