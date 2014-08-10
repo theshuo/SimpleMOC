@@ -212,7 +212,6 @@ void attenuate_fluxes( Track * track, Source * QSR, Input * I_in,
 // run one full transport sweep, return k
 void transport_sweep( Params params, Input I )
 {
-	if(I.mype==0) printf("Starting transport sweep ...\n");
 
 	// calculate the height of a node's domain and of each FSR
 	double node_delta_z = I.height / I.decomp_assemblies_ax;
@@ -233,6 +232,7 @@ void transport_sweep( Params params, Input I )
 
 	//print_Input_struct( I );
 
+	if(I.mype==0) printf("Starting transport sweep ...\n");
 	#pragma omp parallel default(none) \
 	shared( I, params, node_delta_z, fine_delta_z ) 
 	{
@@ -250,6 +250,7 @@ void transport_sweep( Params params, Input I )
 		{
 			counter_init(&eventset, &num_papi_events, I);
 		}
+        #pragma omp barrier
 		#endif
 
 		AttenuateVars A;
@@ -273,6 +274,7 @@ void transport_sweep( Params params, Input I )
 		for (long i = 0; i < I.ntracks_2D; i++)
 		{
 			// print progress
+/*
 			#ifdef OPENMP
 			if(I.mype==0 && thread == 0)
 			{
@@ -286,7 +288,7 @@ void transport_sweep( Params params, Input I )
 					printf("%s%ld%s%ld\n","2D Tracks Completed = ", i," / ", 
 							I.ntracks_2D );
 			#endif
-
+*/
 
 			// treat positive-z traveling rays first
 			bool pos_z_dir = true;
@@ -440,9 +442,7 @@ void transport_sweep( Params params, Input I )
             border_print();
             printf("Count          \tSmybol      \tDescription\n");
         }
-        {
         #pragma omp barrier
-        }
         counter_stop(&eventset, num_papi_events, &I);
         #endif
 	}

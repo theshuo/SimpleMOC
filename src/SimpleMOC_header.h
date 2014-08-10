@@ -1,6 +1,7 @@
 #ifndef __SimpleMOC_header
 #define __SimpleMOC_header
 
+#include<pthread.h>
 #include<stdio.h>
 #include<stdlib.h>
 #include<math.h>
@@ -19,7 +20,7 @@
 #endif
 
 #ifdef PAPI
-#include<papi.h>
+#include "/soft/perftools/papi-5.3.0-20140528/include/papi.h"
 #endif
 
 // User inputs

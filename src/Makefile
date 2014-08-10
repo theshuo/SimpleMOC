@@ -2,7 +2,7 @@
 # User Options
 #===============================================================================
 
-COMPILER    = intel
+COMPILER    = ibm
 MPI         = no
 OPENMP      = yes
 OPTIMIZE    = yes
@@ -47,7 +47,7 @@ endif
 
 # IBM XL Compiler
 ifeq ($(COMPILER),ibm)
-  CC = mpicc
+  CC = mpixlc_r
 endif
 
 # BG/Q gcc Cross-Compiler
@@ -56,7 +56,7 @@ ifeq ($(MACHINE),bluegene)
 endif
 
 # Standard Flags
-CFLAGS := -std=gnu99
+# CFLAGS := -std=gnu99
 
 # Linker Flags
 LDFLAGS = -lm
@@ -81,12 +81,13 @@ endif
 ifeq ($(PAPI),yes)
   CFLAGS += -DPAPI
   LDFLAGS += -lpapi
+  LDFLAGS += -L/soft/perftools/papi-5.3.0-20140528/lib/
   OPENMP = yes
 endif
 
 # MPI
 ifeq ($(MPI),yes)
-  CC = mpicc
+  CC = mpixcl_r
   CFLAGS += -DMPI
 endif
 
