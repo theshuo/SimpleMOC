@@ -8,7 +8,7 @@ OPENMP      = yes
 OPTIMIZE    = yes
 DEBUG       = yes
 PROFILE     = no
-PAPI        = no
+PAPI        = yes
 BENCHMARK   = no
 
 #===============================================================================
