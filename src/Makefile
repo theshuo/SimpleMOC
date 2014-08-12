@@ -76,6 +76,10 @@ ifeq ($(OPTIMIZE),yes)
   CFLAGS += -O3
 endif
 
+ifeq ($(COMPILER),ibm)
+  CFLAGS += -qreport -qsimd=noauto
+endif
+
 # PAPI source (you may need to provide -I and -L pointing
 # to PAPI depending on your installation
 ifeq ($(PAPI),yes)
