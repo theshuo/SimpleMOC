@@ -6,7 +6,7 @@ COMPILER    = ibm
 MPI         = no
 OPENMP      = yes
 OPTIMIZE    = yes
-DEBUG       = yes
+DEBUG       = no
 PROFILE     = no
 PAPI        = yes
 BENCHMARK   = no
@@ -73,7 +73,15 @@ endif
 
 # Optimization Flags
 ifeq ($(OPTIMIZE),yes)
-  CFLAGS += -O3
+ifeq ($(COMPILER),gnu)
+  CFLAGS += -Ofast -ffast-math -ftree-vectorize -msse2
+endif
+ifeq ($(COMPILER),intel)
+  CFLAGS += -O3 -xhost -ansi-alias -no-prec-div -DINTEL
+endif
+ifeq ($(COMPILER),ibm)
+  CFLAGS += -O5 -qhot -qsimd=auto -qalias=ansi:allptrs -qarch=qp -DIBM
+endif
 endif
 
 ifeq ($(COMPILER),ibm)

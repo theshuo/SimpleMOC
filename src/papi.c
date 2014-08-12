@@ -217,7 +217,7 @@ void counter_stop( int * eventset, int num_papi_events, Input * I )
 				LLC_cache_miss += values[i];
 			if( strcmp(info.symbol, "PAPI_TOT_CYC") == 0 )
 				total_cycles += values[i];
-			if( strcmp(info.symbol, "PAPI_FP_OPS") == 0 )
+			if( strcmp(info.symbol, "PAPI_SP_OPS") == 0 )
 				FLOPS += values[i];
 			if( strcmp(info.symbol, "RESOURCE_STALLS:ANY") == 0 )
 				stall_any += values[i];

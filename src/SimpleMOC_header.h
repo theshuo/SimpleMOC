@@ -162,19 +162,19 @@ typedef struct{
 	float * tau;
 	float * sigT2;
 	float * expVal;
+	float * reuse;
 	float * flux_integral;
 	float * tally;
 	float * t1;
 	float * t2;
 	float * t3;
-	float * f1;
-	float * f2;
-	float * f3;
+	float * t4;
 } AttenuateVars;
 
 
 // init.c
 Input set_default_input( void );
+void set_small_input( Input * I );
 Params build_tracks( Input I );
 CommGrid init_mpi_grid( Input I );
 void calculate_derived_inputs( Input * I );
@@ -210,6 +210,7 @@ Table buildExponentialTable( float precision, float maxVal );
 float interpolateTable( Table table, float x);
 double get_time(void);
 size_t est_mem_usage( Input I );
+double time_per_intersection( Input I, double time );
 
 // source.c
 Source * initialize_sources( Input I, size_t * nbytes );
@@ -221,6 +222,10 @@ int get_pos_interval( float z, float dz);
 int get_neg_interval( float z, float dz);
 void attenuate_fluxes( Track * track, Source * QSR, Input * I, 
 		Params * params, float ds, float mu, float az_weight, AttenuateVars * A ); 
+void attenuate_FSR_fluxes( Track * track, Source * FSR, Input * I,
+		Params * params, float ds, float mu, float az_weight, AttenuateVars * A );
+void alt_attenuate_fluxes( Track * track, Source * FSR, Input * I,
+		Params * params, float ds, float mu, float az_weight );
 void renormalize_flux( Params params, Input I, CommGrid grid );
 float update_sources( Params params, Input I, float keff );
 float compute_keff( Params params, Input I, CommGrid grid);
